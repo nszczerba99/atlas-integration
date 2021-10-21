@@ -3,6 +3,8 @@
   "displayName": "ATLAS Integration",
   "description": "",
   "version": "0.0.1",
+  "publisher": "nszczerba",
+  "repository": "https://github.com/nszczerba99/atlas-integration.git",
   "engines": {
     "vscode": "^1.61.0"
   },
