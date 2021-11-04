@@ -1,26 +1,89 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-	
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "atlas-integration" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('atlas-integration.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from ATLAS Integration!');
-	});
-
-	context.subscriptions.push(disposable);
+function setPythonPath() {
+	const config = vscode.workspace.getConfiguration();
+	vscode.workspace.findFiles('**/build/env.txt').then((uris) => {
+		if(uris.length === 1) {
+			const newPythonPath = uris[0].fsPath;
+			if (config.get("python.envFile") !== newPythonPath) {
+				config.update("python.envFile", newPythonPath, vscode.ConfigurationTarget.Workspace);
+			}
+		} else {
+			vscode.window.showErrorMessage('Cannot set property "python.envFile": no "build/env.txt" file');
+		}
+	}, (error: any) => {
+		console.error(error);
+	}); 
 }
 
-// this method is called when your extension is deactivated
+async function findPackageFiltersUri() {
+	return await vscode.workspace.findFiles('**/package_filters.txt').then((uris) => {
+		if(uris.length === 1) {
+			return uris[0];
+		} else {
+			return null;
+		}
+	});
+}
+
+function getLastPositionInFile(document: vscode.TextDocument) {
+	const lastLine = document.lineAt(document.lineCount - 1);
+	return lastLine.range.end;
+}
+
+async function updateCopyrightInfo(uri: vscode.Uri): Promise<void> {
+	let document: vscode.TextDocument = await vscode.workspace.openTextDocument(uri);
+	const text: string = document.getText();
+
+	const copyrightInfo = /Copyright \(C\) [0-9]{4}\-[0-9]{4} CERN for the benefit of the ATLAS collaboration/g.exec(text);
+	const yearOffset = 19;
+	const yearLength = 4;
+	if (copyrightInfo !== null) {
+		const startPos = document.positionAt(copyrightInfo.index + yearOffset);
+		const endPos = startPos.translate(0, yearLength);
+		const range = new vscode.Range(startPos, endPos);
+
+		const currentYear = new Date().getFullYear().toString();
+		const previousYear = copyrightInfo[0].substr(yearOffset, yearLength);
+		if (previousYear !== currentYear) {
+			let edit: vscode.WorkspaceEdit = new vscode.WorkspaceEdit();
+			edit.replace(uri, range, currentYear);
+			await vscode.workspace.applyEdit(edit);
+			await document.save();
+			vscode.window.showInformationMessage("Copyright data updated");
+		}
+	}
+}
+
+async function updatePackageFiltersFile(uri: vscode.Uri, packageFiltersUri: vscode.Uri): Promise<void> {
+	const packageFiltersDocument: vscode.TextDocument = await vscode.workspace.openTextDocument(packageFiltersUri);
+	const packageFiltersText: string = packageFiltersDocument.getText();
+	const changedFilename = uri.fsPath;
+
+	if (packageFiltersText.match(changedFilename) === null) {
+		let edit: vscode.WorkspaceEdit = new vscode.WorkspaceEdit();
+		edit.insert(packageFiltersUri, getLastPositionInFile(packageFiltersDocument), `\n- ${uri.fsPath}`);
+		await vscode.workspace.applyEdit(edit);
+		await packageFiltersDocument.save();
+		vscode.window.showInformationMessage('"package_filters.txt" file updated');
+	}
+}
+
+export function activate(context: vscode.ExtensionContext) {
+
+	setPythonPath();
+
+	findPackageFiltersUri().then((packageFiltersUri) => {
+		let watcher = vscode.workspace.createFileSystemWatcher("**/athena/**/*.{py,cxx,h,txt}", true, false, true);
+
+		watcher.onDidChange((uri) => {
+			updateCopyrightInfo(uri);
+
+			if (packageFiltersUri !== null) {
+				updatePackageFiltersFile(uri, packageFiltersUri);
+			}
+		});
+	});
+}
+
 export function deactivate() {}

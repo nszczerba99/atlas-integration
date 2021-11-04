@@ -12,16 +12,11 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:atlas-integration.helloWorld"
+    "workspaceContains:**/athena/*"
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "atlas-integration.helloWorld",
-        "title": "Hello World"
-      }
-    ]
+    "commands": []
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
