@@ -51,7 +51,7 @@ export function activate(context: vsc.ExtensionContext) {
 
 			if (packageFiltersText.match(currentFilePath) === null) {
 				let edit: vsc.WorkspaceEdit = new vsc.WorkspaceEdit();
-				edit.insert(packageFiltersDocument.uri, getLastPositionInFile(packageFiltersDocument), `- ${currentFilePath}\n`);
+				edit.insert(packageFiltersDocument.uri, getLastPositionInFile(packageFiltersDocument), `+ ${currentFilePath}\n`);
 
 				vsc.workspace.applyEdit(edit).then(() => {
 					packageFiltersDocument.save().then(() => {
