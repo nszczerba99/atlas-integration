@@ -12,11 +12,26 @@
     "Other"
   ],
   "activationEvents": [
-    "workspaceContains:**/athena/*"
+    "*"
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": []
+    "commands": [
+      {
+        "command": "atlas-integration.updateCopyright",
+        "title": "Update Copyright"
+      },
+      {
+        "command": "atlas-integration.updatePackageFilters",
+        "title": "Update \"package_filters.txt\" file"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "python",
+        "path": "./snippets/python.json"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

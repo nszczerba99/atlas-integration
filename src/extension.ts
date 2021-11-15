@@ -1,89 +1,96 @@
-import * as vscode from 'vscode';
+import * as vsc from 'vscode';
+
+function isAthenaOpened() {
+	const workspaceFolders = vsc.workspace.workspaceFolders;
+	if (workspaceFolders !== undefined && workspaceFolders.length === 1 && workspaceFolders[0].name === 'athena') {
+		return true;
+	} else {
+		return false;
+	}
+}
 
 function setPythonPath() {
-	const config = vscode.workspace.getConfiguration();
-	vscode.workspace.findFiles('**/build/env.txt').then((uris) => {
-		if(uris.length === 1) {
-			const newPythonPath = uris[0].fsPath;
-			if (config.get("python.envFile") !== newPythonPath) {
-				config.update("python.envFile", newPythonPath, vscode.ConfigurationTarget.Workspace);
-			}
-		} else {
-			vscode.window.showErrorMessage('Cannot set property "python.envFile": no "build/env.txt" file');
-		}
-	}, (error: any) => {
-		console.error(error);
+	const config = vsc.workspace.getConfiguration();
+	const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
+	const pythonEnvPathFromRoot = `../build/env.txt`;
+	const pythonEnvAbsPath = `${rootPath}/${pythonEnvPathFromRoot}`;
+	const pythonEnvRelPath = `\${workspaceFolder}/${pythonEnvPathFromRoot}`;
+
+	vsc.workspace.fs.stat(vsc.Uri.file(pythonEnvAbsPath)).then(() => {
+		config.update("python.envFile", pythonEnvRelPath, vsc.ConfigurationTarget.Workspace);
+	}, () => {
+		vsc.window.showErrorMessage(`Cannot set property "python.envFile": "${pythonEnvRelPath}" file not found`);
 	}); 
 }
 
-async function findPackageFiltersUri() {
-	return await vscode.workspace.findFiles('**/package_filters.txt').then((uris) => {
-		if(uris.length === 1) {
-			return uris[0];
-		} else {
-			return null;
-		}
-	});
-}
-
-function getLastPositionInFile(document: vscode.TextDocument) {
+function getLastPositionInFile(document: vsc.TextDocument) {
 	const lastLine = document.lineAt(document.lineCount - 1);
 	return lastLine.range.end;
 }
 
-async function updateCopyrightInfo(uri: vscode.Uri): Promise<void> {
-	let document: vscode.TextDocument = await vscode.workspace.openTextDocument(uri);
-	const text: string = document.getText();
+export function activate(context: vsc.ExtensionContext) {
 
-	const copyrightInfo = /Copyright \(C\) [0-9]{4}\-[0-9]{4} CERN for the benefit of the ATLAS collaboration/g.exec(text);
-	const yearOffset = 19;
-	const yearLength = 4;
-	if (copyrightInfo !== null) {
-		const startPos = document.positionAt(copyrightInfo.index + yearOffset);
-		const endPos = startPos.translate(0, yearLength);
-		const range = new vscode.Range(startPos, endPos);
-
-		const currentYear = new Date().getFullYear().toString();
-		const previousYear = copyrightInfo[0].substr(yearOffset, yearLength);
-		if (previousYear !== currentYear) {
-			let edit: vscode.WorkspaceEdit = new vscode.WorkspaceEdit();
-			edit.replace(uri, range, currentYear);
-			await vscode.workspace.applyEdit(edit);
-			await document.save();
-			vscode.window.showInformationMessage("Copyright data updated");
-		}
+	if (!isAthenaOpened()) {
+		vsc.window.showErrorMessage('"athena" should be the workspace root folder');
 	}
-}
-
-async function updatePackageFiltersFile(uri: vscode.Uri, packageFiltersUri: vscode.Uri): Promise<void> {
-	const packageFiltersDocument: vscode.TextDocument = await vscode.workspace.openTextDocument(packageFiltersUri);
-	const packageFiltersText: string = packageFiltersDocument.getText();
-	const changedFilename = uri.fsPath;
-
-	if (packageFiltersText.match(changedFilename) === null) {
-		let edit: vscode.WorkspaceEdit = new vscode.WorkspaceEdit();
-		edit.insert(packageFiltersUri, getLastPositionInFile(packageFiltersDocument), `\n- ${uri.fsPath}`);
-		await vscode.workspace.applyEdit(edit);
-		await packageFiltersDocument.save();
-		vscode.window.showInformationMessage('"package_filters.txt" file updated');
-	}
-}
-
-export function activate(context: vscode.ExtensionContext) {
+	
+	// vsc.workspace.onDidChangeWorkspaceFolders(() => {
+	// });
 
 	setPythonPath();
 
-	findPackageFiltersUri().then((packageFiltersUri) => {
-		let watcher = vscode.workspace.createFileSystemWatcher("**/athena/**/*.{py,cxx,h,txt}", true, false, true);
+	let updatePackageFiltersDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.updatePackageFilters', (textEditor, edit) => {
+		const currentFilePath = vsc.workspace.asRelativePath(textEditor.document.uri.fsPath);
+		
+		const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
+		const packageFiltersPathFromRoot = `../package_filters.txt`;
+		const packageFiltersAbsPath = `${rootPath}/${packageFiltersPathFromRoot}`;
 
-		watcher.onDidChange((uri) => {
-			updateCopyrightInfo(uri);
+		vsc.workspace.openTextDocument(packageFiltersAbsPath).then((packageFiltersDocument) => {
+			const packageFiltersText: string = packageFiltersDocument.getText();
 
-			if (packageFiltersUri !== null) {
-				updatePackageFiltersFile(uri, packageFiltersUri);
+			if (packageFiltersText.match(currentFilePath) === null) {
+				let edit: vsc.WorkspaceEdit = new vsc.WorkspaceEdit();
+				edit.insert(packageFiltersDocument.uri, getLastPositionInFile(packageFiltersDocument), `- ${currentFilePath}\n`);
+
+				vsc.workspace.applyEdit(edit).then(() => {
+					packageFiltersDocument.save().then(() => {
+						vsc.window.showInformationMessage('"package_filters.txt" file updated');
+					});
+				}, (error) => {
+					console.error(error);
+				});
 			}
-		});
+		}, () => {
+			vsc.window.showErrorMessage(`"\${workspaceFolder}/${packageFiltersPathFromRoot}" file not found`);
+		}); 
 	});
+
+	context.subscriptions.push(updatePackageFiltersDisposable);
+
+	let updateCopyrightDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.updateCopyright', (textEditor, edit) => {
+		const textDocument = textEditor.document;
+		const text = textDocument.getText();
+
+		const copyrightInfo = /Copyright \(C\) [0-9]{4}\-[0-9]{4} CERN for the benefit of the ATLAS collaboration/g.exec(text);
+		const yearOffset = 19;
+		const yearLength = 4;
+
+		if (copyrightInfo !== null) {
+			const startPos = textDocument.positionAt(copyrightInfo.index + yearOffset);
+			const endPos = startPos.translate(0, yearLength);
+			const yearLocation = new vsc.Range(startPos, endPos);
+
+			const currentYear = new Date().getFullYear().toString();
+
+			edit.replace(yearLocation, currentYear);
+			textDocument.save().then(() => {
+				vsc.window.showInformationMessage("Copyright updated");
+			});
+		}
+	});
+
+	context.subscriptions.push(updateCopyrightDisposable);
 }
 
 export function deactivate() {}
