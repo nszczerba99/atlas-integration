@@ -9,7 +9,8 @@
     "vscode": "^1.61.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Snippets"
   ],
   "activationEvents": [
     "*"
@@ -22,10 +23,23 @@
         "title": "Update Copyright"
       },
       {
-        "command": "atlas-integration.updatePackageFilters",
-        "title": "Update \"package_filters.txt\" file"
+        "command": "atlas-integration.addCurrentFileToTheBuild",
+        "title": "Add Current File To The Build"
+      },
+      {
+        "command": "atlas-integration.compile",
+        "title": "Compile",
+        "icon": "$(wrench)"
       }
     ],
+    "menus": {
+      "editor/title/run": [
+          {
+              "command": "atlas-integration.compile",
+              "title": "Compile"
+          }
+      ]
+    },
     "snippets": [
       {
         "language": "python",

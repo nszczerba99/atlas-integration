@@ -17,21 +17,22 @@ function setPythonPath() {
 	const pythonEnvRelPath = `\${workspaceFolder}/${pythonEnvPathFromRoot}`;
 
 	vsc.workspace.fs.stat(vsc.Uri.file(pythonEnvAbsPath)).then(() => {
-		config.update("python.envFile", pythonEnvRelPath, vsc.ConfigurationTarget.Workspace);
+		config.update('python.envFile', pythonEnvRelPath, vsc.ConfigurationTarget.Workspace);
 	}, () => {
 		vsc.window.showErrorMessage(`Cannot set property "python.envFile": "${pythonEnvRelPath}" file not found`);
 	}); 
 }
 
-function getLastPositionInFile(document: vsc.TextDocument) {
+function getTextDocumentLastPosition(document: vsc.TextDocument) {
 	const lastLine = document.lineAt(document.lineCount - 1);
 	return lastLine.range.end;
 }
 
-export function activate(context: vsc.ExtensionContext) {
+export function activate(context: vsc.ExtensionContext): void {
 
 	if (!isAthenaOpened()) {
 		vsc.window.showErrorMessage('"athena" should be the workspace root folder');
+		return;
 	}
 	
 	// vsc.workspace.onDidChangeWorkspaceFolders(() => {
@@ -39,7 +40,7 @@ export function activate(context: vsc.ExtensionContext) {
 
 	setPythonPath();
 
-	let updatePackageFiltersDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.updatePackageFilters', (textEditor, edit) => {
+	const updatePackageFiltersDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.addCurrentFileToTheBuild', (textEditor) => {
 		const currentFilePath = vsc.workspace.asRelativePath(textEditor.document.uri.fsPath);
 		
 		const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
@@ -50,8 +51,8 @@ export function activate(context: vsc.ExtensionContext) {
 			const packageFiltersText: string = packageFiltersDocument.getText();
 
 			if (packageFiltersText.match(currentFilePath) === null) {
-				let edit: vsc.WorkspaceEdit = new vsc.WorkspaceEdit();
-				edit.insert(packageFiltersDocument.uri, getLastPositionInFile(packageFiltersDocument), `+ ${currentFilePath}\n`);
+				const edit: vsc.WorkspaceEdit = new vsc.WorkspaceEdit();
+				edit.insert(packageFiltersDocument.uri, getTextDocumentLastPosition(packageFiltersDocument), `+ ${currentFilePath}\n`);
 
 				vsc.workspace.applyEdit(edit).then(() => {
 					packageFiltersDocument.save().then(() => {
@@ -68,11 +69,11 @@ export function activate(context: vsc.ExtensionContext) {
 
 	context.subscriptions.push(updatePackageFiltersDisposable);
 
-	let updateCopyrightDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.updateCopyright', (textEditor, edit) => {
+	const updateCopyrightDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.updateCopyright', (textEditor, edit) => {
 		const textDocument = textEditor.document;
 		const text = textDocument.getText();
 
-		const copyrightInfo = /Copyright \(C\) [0-9]{4}\-[0-9]{4} CERN for the benefit of the ATLAS collaboration/g.exec(text);
+		const copyrightInfo = /Copyright \(C\) [0-9]{4}-[0-9]{4} CERN for the benefit of the ATLAS collaboration/g.exec(text);
 		const yearOffset = 19;
 		const yearLength = 4;
 
@@ -85,12 +86,20 @@ export function activate(context: vsc.ExtensionContext) {
 
 			edit.replace(yearLocation, currentYear);
 			textDocument.save().then(() => {
-				vsc.window.showInformationMessage("Copyright updated");
+				vsc.window.showInformationMessage('Copyright updated');
 			});
 		}
 	});
 
 	context.subscriptions.push(updateCopyrightDisposable);
+
+	const runMakeDisposable = vsc.commands.registerCommand('atlas-integration.compile', () => {
+		vsc.window.activeTerminal?.show();
+		vsc.window.activeTerminal?.sendText('make');
+	});
+
+	context.subscriptions.push(runMakeDisposable);
 }
 
-export function deactivate() {}
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+export function deactivate(): void {}
