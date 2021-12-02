@@ -1,12 +1,52 @@
 {
-	"Hello comment": {
-	  "scope": "python",
-	  "prefix": "hello",
-	  "body": "$BLOCK_COMMENT_START Hello World! $BLOCK_COMMENT_END"
+	"Cfg function": {
+		"scope": "python",
+		"prefix": "Cfg",
+		"body": [
+			"def Cfg(flags):",
+			"\t$BLOCK_COMMENT_START${0}$BLOCK_COMMENT_END",
+			"\tacc = ComponentAccumulator()",
+			"\treturn acc"
+		]
 	},
-	"For loop": {
-	  "scope": "python",
-	  "prefix": "for",
-	  "body": "for x in ${1:collection}:\n\t${0}"
+	"Selftest": {
+		"scope": "python",
+		"prefix": "selftest",
+		"body": [
+			"if __name__ == '__main__':",
+			"\tfrom AthenaCommon.Configurable import Configurable",
+			"\tConfigurable.configurableRun3Behavior=1",
+			"\tfrom AthenaConfiguration.AllConfigFlags import ConfigFlags",
+			"\tfrom AthenaConfiguration.TestDefaults import defaultTestFiles",
+			"\tfrom AthenaConfiguration.MainServicesConfig import MainServicesCfg\n\n",
+			"\tConfigFlags.Input.Files=defaultTestFiles.${1|RAW,ESD,AOD|}",
+			"\tConfigFlags.lock()\n",
+			"\tacc=MainServicesCfg(ConfigFlags)",
+    			"\t$LINE_COMMENT if need to read POOL file",
+			"\tfrom AthenaPoolCnvSvc.PoolReadConfig import PoolReadCfg",
+			"\tacc.merge(PoolReadCfg(ConfigFlags))\n",
+    			"\t$LINE_COMMENT if need to read BS file",
+			"\tfrom ByteStreamCnvSvc.ByteStreamConfig import ByteStreamReadCfg",
+			"\tacc.merge(ByteStreamReadCfg(ConfigFlags))\n",
+			"\tacc.merge(${4:CFG generator})\n",
+			"\tacc.printConfig(withDetails=True)",
+			"\t$LINE_COMMENT either",
+			"\tstatus = acc.run()",	
+			"\tif status.isFailure():",
+			"\t\timport sys",	
+			"\t\tsys.exit(-1)",
+			"\t$LINE_COMMENT or",
+			"\tacc.wasMerged()\n$0"
+		]
+	},
+	"Montool": {
+		"scope": "python",
+		"prefix": "montool",
+		"body": [
+			"from AthenaMonitoringKernel.GenericMonitoringTool import GenericMonitoringTool",
+			"monTool = GenericMonitoringTool('MonTool')",
+			"monTool.defineHistogram('${1:var_name}', title='title;xaxis;yaxis', type='TH1F', path='EXPERT', xbins=$2, xmin=$3, xmax=$4)",
+			"monTool.defineHistogram('${5:var1_name}, ${6:var2_name}', title='title;xaxis;yaxis', type='TH2F', path='EXPERT', xbins=$7, xmin=$8, xmax=$9, ybins=$10, ymin=$11, ymax=$12)\n$0"
+		]	
 	}
 }

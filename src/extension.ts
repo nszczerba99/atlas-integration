@@ -1,4 +1,5 @@
 import * as vsc from 'vscode';
+import * as path from 'path';
 
 function isAthenaOpened() {
 	const workspaceFolders = vsc.workspace.workspaceFolders;
@@ -28,43 +29,103 @@ function getTextDocumentLastPosition(document: vsc.TextDocument) {
 	return lastLine.range.end;
 }
 
+async function getFilePackage(filePath: string): Promise<string | undefined> {
+	const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
+	let currentDirPath = path.dirname(filePath);
+
+	while (currentDirPath !== rootPath) {
+		currentDirPath = path.join(currentDirPath, '..');
+		const cmakeFilePath = `${currentDirPath}/CMakeLists.txt`;
+
+		const filePackage = await vsc.workspace.fs.stat(vsc.Uri.file(cmakeFilePath)).then(() => {
+			return vsc.workspace.asRelativePath(currentDirPath);
+		}, () => {
+			return undefined;
+		});
+		if (filePackage) { return filePackage; }
+	}
+	return undefined;
+}
+
 export function activate(context: vsc.ExtensionContext): void {
 
 	if (!isAthenaOpened()) {
 		vsc.window.showErrorMessage('"athena" should be the workspace root folder');
 		return;
 	}
-	
-	// vsc.workspace.onDidChangeWorkspaceFolders(() => {
-	// });
 
 	setPythonPath();
 
-	const updatePackageFiltersDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.addCurrentFileToTheBuild', (textEditor) => {
-		const currentFilePath = vsc.workspace.asRelativePath(textEditor.document.uri.fsPath);
-		
-		const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
-		const packageFiltersPathFromRoot = `../package_filters.txt`;
-		const packageFiltersAbsPath = `${rootPath}/${packageFiltersPathFromRoot}`;
+	// vsc.workspace.onDidChangeWorkspaceFolders(() => {
+	// });
 
-		vsc.workspace.openTextDocument(packageFiltersAbsPath).then((packageFiltersDocument) => {
-			const packageFiltersText: string = packageFiltersDocument.getText();
+	let didPackageFiltersChanged = true;
+	let didBuildFilesAdded = false;
 
-			if (packageFiltersText.match(currentFilePath) === null) {
-				const edit: vsc.WorkspaceEdit = new vsc.WorkspaceEdit();
-				edit.insert(packageFiltersDocument.uri, getTextDocumentLastPosition(packageFiltersDocument), `+ ${currentFilePath}\n`);
+	vsc.workspace.onDidCreateFiles((event) => {
+		if (!didBuildFilesAdded) {
+			event.files.forEach((uri) => {
+				const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
+				const packageFiltersPathFromRoot = `../package_filters.txt`;
+				const packageFiltersAbsPath = `${rootPath}/${packageFiltersPathFromRoot}`;
 
-				vsc.workspace.applyEdit(edit).then(() => {
-					packageFiltersDocument.save().then(() => {
-						vsc.window.showInformationMessage('"package_filters.txt" file updated');
+				vsc.workspace.openTextDocument(packageFiltersAbsPath).then((packageFiltersDocument) => {
+					const packageFiltersText: string = packageFiltersDocument.getText();
+					getFilePackage(uri.fsPath).then((packagePath) => {
+						if (packagePath && packageFiltersText.match(packagePath)) {
+							didBuildFilesAdded = true;
+						}
 					});
-				}, (error) => {
-					console.error(error);
-				});
+				}, () => {
+					vsc.window.showErrorMessage(`"\${workspaceFolder}/${packageFiltersPathFromRoot}" file not found`);
+				}); 
+			});
+		}
+	});
+	
+	const updatePackageFiltersDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.addCurrentPackageToTheBuild', (textEditor) => {
+		getFilePackage(textEditor.document.uri.fsPath).then((packagePath) => {
+			if (packagePath !== undefined) {
+				const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
+				const packageFiltersPathFromRoot = `../package_filters.txt`;
+				const packageFiltersAbsPath = `${rootPath}/${packageFiltersPathFromRoot}`;
+
+				vsc.workspace.openTextDocument(packageFiltersAbsPath).then((packageFiltersDocument) => {
+					const packageFiltersText: string = packageFiltersDocument.getText();
+
+					if (packageFiltersText.match(packagePath) === null) {
+						let packageFiltersInsertPosition, insertText;
+						const excludeAllPackagesMark = /^- \.\*$/m.exec(packageFiltersText);		
+
+						if (excludeAllPackagesMark) {
+							packageFiltersInsertPosition = packageFiltersDocument.positionAt(excludeAllPackagesMark.index - 1);
+							insertText = `\n+ ${packagePath}`;
+						} else {
+							packageFiltersInsertPosition = getTextDocumentLastPosition(packageFiltersDocument);
+							insertText = `\n+ ${packagePath}\n- .*\n`;
+						}
+
+						const edit: vsc.WorkspaceEdit = new vsc.WorkspaceEdit();
+						edit.insert(packageFiltersDocument.uri, packageFiltersInsertPosition, insertText);
+
+						vsc.workspace.applyEdit(edit).then(() => {
+							packageFiltersDocument.save().then(() => {
+								vsc.window.showInformationMessage('"package_filters.txt" file updated');
+								didPackageFiltersChanged = true;
+							});
+						}, (error) => {
+							console.error(error);
+						});
+					} else {
+						vsc.window.showInformationMessage('Package already added to the build');
+					}
+				}, () => {
+					vsc.window.showErrorMessage(`"\${workspaceFolder}/${packageFiltersPathFromRoot}" file not found`);
+				}); 
+			} else {
+				vsc.window.showErrorMessage(`Package of ${vsc.workspace.asRelativePath(textEditor.document.uri.fsPath)} file not found`);
 			}
-		}, () => {
-			vsc.window.showErrorMessage(`"\${workspaceFolder}/${packageFiltersPathFromRoot}" file not found`);
-		}); 
+		});
 	});
 
 	context.subscriptions.push(updatePackageFiltersDisposable);
@@ -95,10 +156,24 @@ export function activate(context: vsc.ExtensionContext): void {
 
 	const runMakeDisposable = vsc.commands.registerCommand('atlas-integration.compile', () => {
 		vsc.window.activeTerminal?.show();
+		if (didPackageFiltersChanged || didBuildFilesAdded) {
+			vsc.window.activeTerminal?.sendText('cmake -DATLAS_PACKAGE_FILTER_FILE=../package_filters.txt ../athena/Projects/WorkDir');
+		}
 		vsc.window.activeTerminal?.sendText('make');
+
+		didBuildFilesAdded = false;
+		didPackageFiltersChanged = false;
 	});
 
 	context.subscriptions.push(runMakeDisposable);
+
+	const runTestsDisposable = vsc.commands.registerCommand('atlas-integration.test', () => {
+		vsc.window.activeTerminal?.show();
+		const testCommand = vsc.workspace.getConfiguration().get('testing.testCommand');
+		vsc.window.activeTerminal?.sendText(testCommand as string);
+	});
+
+	context.subscriptions.push(runTestsDisposable);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

@@ -17,19 +17,37 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Atlas Integration",
+      "properties": {
+        "testing.testCommand": {
+          "type": "string",
+          "default": "ctest",
+          "description": "Specifies Athena testing command"
+        }
+      }
+    },
     "commands": [
       {
         "command": "atlas-integration.updateCopyright",
-        "title": "Update Copyright"
+        "title": "Update Copyright",
+        "category": "ATLAS"
       },
       {
-        "command": "atlas-integration.addCurrentFileToTheBuild",
-        "title": "Add Current File To The Build"
+        "command": "atlas-integration.addCurrentPackageToTheBuild",
+        "title": "Add Current Package To The Build",
+        "category": "ATLAS"
       },
       {
         "command": "atlas-integration.compile",
         "title": "Compile",
+        "category": "ATLAS",
         "icon": "$(wrench)"
+      },
+      {
+        "command": "atlas-integration.test",
+        "title": "Test",
+        "category": "ATLAS"
       }
     ],
     "menus": {
@@ -44,6 +62,10 @@
       {
         "language": "python",
         "path": "./snippets/python.json"
+      },
+      {
+        "language": "cpp",
+        "path": "./snippets/cpp.json"
       }
     ]
   },
