@@ -10,18 +10,24 @@ function isAthenaOpened() {
 	}
 }
 
-function setPythonPath() {
-	const config = vsc.workspace.getConfiguration();
-	const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
-	const pythonEnvPathFromRoot = `../build/env.txt`;
-	const pythonEnvAbsPath = `${rootPath}/${pythonEnvPathFromRoot}`;
-	const pythonEnvRelPath = `\${workspaceFolder}/${pythonEnvPathFromRoot}`;
+const onWrongWorkspaceFolders = () => vsc.window.showErrorMessage('"athena" should be the workspace root folder');
 
-	vsc.workspace.fs.stat(vsc.Uri.file(pythonEnvAbsPath)).then(() => {
-		config.update('python.envFile', pythonEnvRelPath, vsc.ConfigurationTarget.Workspace);
-	}, () => {
-		vsc.window.showErrorMessage(`Cannot set property "python.envFile": "${pythonEnvRelPath}" file not found`);
-	}); 
+function setPythonPath() {
+	if (isAthenaOpened()) {
+		const config = vsc.workspace.getConfiguration();
+		const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
+		const pythonEnvPathFromRoot = `../build/env.txt`;
+		const pythonEnvAbsPath = `${rootPath}/${pythonEnvPathFromRoot}`;
+		const pythonEnvRelPath = `\${workspaceFolder}/${pythonEnvPathFromRoot}`;
+
+		vsc.workspace.fs.stat(vsc.Uri.file(pythonEnvAbsPath)).then(() => {
+			config.update('python.envFile', pythonEnvRelPath, vsc.ConfigurationTarget.Workspace);
+		}, () => {
+			vsc.window.showErrorMessage(`Cannot set property "python.envFile": "${pythonEnvRelPath}" file not found`);
+		}); 
+	} else {
+		onWrongWorkspaceFolders();
+	}
 }
 
 function getTextDocumentLastPosition(document: vsc.TextDocument) {
@@ -50,82 +56,92 @@ async function getFilePackage(filePath: string): Promise<string | undefined> {
 export function activate(context: vsc.ExtensionContext): void {
 
 	if (!isAthenaOpened()) {
-		vsc.window.showErrorMessage('"athena" should be the workspace root folder');
-		return;
+		onWrongWorkspaceFolders();
 	}
 
-	setPythonPath();
+	vsc.workspace.onDidChangeWorkspaceFolders(() => {
+		if (!isAthenaOpened()) {
+			onWrongWorkspaceFolders();
+		}
+	});
 
-	// vsc.workspace.onDidChangeWorkspaceFolders(() => {
-	// });
+	setPythonPath();
 
 	let didPackageFiltersChanged = true;
 	let didBuildFilesAdded = false;
 
 	vsc.workspace.onDidCreateFiles((event) => {
-		if (!didBuildFilesAdded) {
-			event.files.forEach((uri) => {
-				const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
-				const packageFiltersPathFromRoot = `../package_filters.txt`;
-				const packageFiltersAbsPath = `${rootPath}/${packageFiltersPathFromRoot}`;
+		if (isAthenaOpened()) {
+			if (!didBuildFilesAdded) {
+				event.files.forEach((uri) => {
+					const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
+					const packageFiltersPathFromRoot = `../package_filters.txt`;
+					const packageFiltersAbsPath = `${rootPath}/${packageFiltersPathFromRoot}`;
 
-				vsc.workspace.openTextDocument(packageFiltersAbsPath).then((packageFiltersDocument) => {
-					const packageFiltersText: string = packageFiltersDocument.getText();
-					getFilePackage(uri.fsPath).then((packagePath) => {
-						if (packagePath && packageFiltersText.match(packagePath)) {
-							didBuildFilesAdded = true;
-						}
-					});
-				}, () => {
-					vsc.window.showErrorMessage(`"\${workspaceFolder}/${packageFiltersPathFromRoot}" file not found`);
-				}); 
-			});
+					vsc.workspace.openTextDocument(packageFiltersAbsPath).then((packageFiltersDocument) => {
+						const packageFiltersText: string = packageFiltersDocument.getText();
+						getFilePackage(uri.fsPath).then((packagePath) => {
+							if (packagePath && packageFiltersText.match(packagePath)) {
+								didBuildFilesAdded = true;
+							}
+						});
+					}, () => {
+						vsc.window.showErrorMessage(`"\${workspaceFolder}/${packageFiltersPathFromRoot}" file not found`);
+					}); 
+				});
+			}
+		} else {
+			onWrongWorkspaceFolders();
 		}
 	});
 	
 	const updatePackageFiltersDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.addCurrentPackageToTheBuild', (textEditor) => {
-		getFilePackage(textEditor.document.uri.fsPath).then((packagePath) => {
-			if (packagePath !== undefined) {
-				const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
-				const packageFiltersPathFromRoot = `../package_filters.txt`;
-				const packageFiltersAbsPath = `${rootPath}/${packageFiltersPathFromRoot}`;
+		if (isAthenaOpened()) {
+			getFilePackage(textEditor.document.uri.fsPath).then((packagePath) => {
+				if (packagePath !== undefined) {
+					const rootPath = (vsc.workspace.workspaceFolders as vsc.WorkspaceFolder[])[0].uri.fsPath;
+					const packageFiltersPathFromRoot = `../package_filters.txt`;
+					const packageFiltersAbsPath = `${rootPath}/${packageFiltersPathFromRoot}`;
 
-				vsc.workspace.openTextDocument(packageFiltersAbsPath).then((packageFiltersDocument) => {
-					const packageFiltersText: string = packageFiltersDocument.getText();
+					vsc.workspace.openTextDocument(packageFiltersAbsPath).then((packageFiltersDocument) => {
+						const packageFiltersText: string = packageFiltersDocument.getText();
 
-					if (packageFiltersText.match(packagePath) === null) {
-						let packageFiltersInsertPosition, insertText;
-						const excludeAllPackagesMark = /^- \.\*$/m.exec(packageFiltersText);		
+						if (packageFiltersText.match(packagePath) === null) {
+							let packageFiltersInsertPosition, insertText;
+							const excludeAllPackagesMark = /^- \.\*$/m.exec(packageFiltersText);		
 
-						if (excludeAllPackagesMark) {
-							packageFiltersInsertPosition = packageFiltersDocument.positionAt(excludeAllPackagesMark.index - 1);
-							insertText = `\n+ ${packagePath}`;
-						} else {
-							packageFiltersInsertPosition = getTextDocumentLastPosition(packageFiltersDocument);
-							insertText = `\n+ ${packagePath}\n- .*\n`;
-						}
+							if (excludeAllPackagesMark) {
+								packageFiltersInsertPosition = packageFiltersDocument.positionAt(excludeAllPackagesMark.index - 1);
+								insertText = `\n+ ${packagePath}`;
+							} else {
+								packageFiltersInsertPosition = getTextDocumentLastPosition(packageFiltersDocument);
+								insertText = `\n+ ${packagePath}\n- .*\n`;
+							}
 
-						const edit: vsc.WorkspaceEdit = new vsc.WorkspaceEdit();
-						edit.insert(packageFiltersDocument.uri, packageFiltersInsertPosition, insertText);
+							const edit: vsc.WorkspaceEdit = new vsc.WorkspaceEdit();
+							edit.insert(packageFiltersDocument.uri, packageFiltersInsertPosition, insertText);
 
-						vsc.workspace.applyEdit(edit).then(() => {
-							packageFiltersDocument.save().then(() => {
-								vsc.window.showInformationMessage('"package_filters.txt" file updated');
-								didPackageFiltersChanged = true;
+							vsc.workspace.applyEdit(edit).then(() => {
+								packageFiltersDocument.save().then(() => {
+									vsc.window.showInformationMessage('"package_filters.txt" file updated');
+									didPackageFiltersChanged = true;
+								});
+							}, (error) => {
+								console.error(error);
 							});
-						}, (error) => {
-							console.error(error);
-						});
-					} else {
-						vsc.window.showInformationMessage('Package already added to the build');
-					}
-				}, () => {
-					vsc.window.showErrorMessage(`"\${workspaceFolder}/${packageFiltersPathFromRoot}" file not found`);
-				}); 
-			} else {
-				vsc.window.showErrorMessage(`Package of ${vsc.workspace.asRelativePath(textEditor.document.uri.fsPath)} file not found`);
-			}
-		});
+						} else {
+							vsc.window.showInformationMessage('Package already added to the build');
+						}
+					}, () => {
+						vsc.window.showErrorMessage(`"\${workspaceFolder}/${packageFiltersPathFromRoot}" file not found`);
+					}); 
+				} else {
+					vsc.window.showErrorMessage(`Package of ${vsc.workspace.asRelativePath(textEditor.document.uri.fsPath)} file not found`);
+				}
+			});
+		} else {
+			onWrongWorkspaceFolders();
+		}
 	});
 
 	context.subscriptions.push(updatePackageFiltersDisposable);
@@ -169,7 +185,7 @@ export function activate(context: vsc.ExtensionContext): void {
 
 	const runTestsDisposable = vsc.commands.registerCommand('atlas-integration.test', () => {
 		vsc.window.activeTerminal?.show();
-		const testCommand = vsc.workspace.getConfiguration().get('testing.testCommand');
+		const testCommand = vsc.workspace.getConfiguration().get('atlas.testing.testCommand');
 		vsc.window.activeTerminal?.sendText(testCommand as string);
 	});
 

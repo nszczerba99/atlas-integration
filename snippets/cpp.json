@@ -1,7 +1,7 @@
 {
-	"ReadHandle": {
+	"ReadHandleKey": {
 		"scope": "cpp",
-		"prefix": "ReadHandle",
+		"prefix": "ReadHandleKey",
 		"body": "SG::ReadHandleKey<${1:type}> m_${2}  { this, \"${3:property name}\", ${4:default}, \"${5:documentation}\" };\n$0"
 	},
 	"Property": {
@@ -9,7 +9,7 @@
 		"prefix": "Property",	
 		"body": "Gaudi::Property<${1:type}> m_${2} {this, \"${3:property name}\", ${4:default}, \"${5:documentation}\" };\n$0"
 	},
-	"Method": {
+	"StatusCode": {
 		"scope": "cpp",
 		"prefix": "Method",	
 		"body": "StatusCode ${1:name}(const EventContext& ctx, $2) const;\n$0"

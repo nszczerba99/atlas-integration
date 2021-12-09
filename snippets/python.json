@@ -1,7 +1,7 @@
 {
 	"Cfg function": {
 		"scope": "python",
-		"prefix": "Cfg",
+		"prefix": "cfg",
 		"body": [
 			"def Cfg(flags):",
 			"\t$BLOCK_COMMENT_START${0}$BLOCK_COMMENT_END",
@@ -9,7 +9,7 @@
 			"\treturn acc"
 		]
 	},
-	"Selftest": {
+	"Self-test": {
 		"scope": "python",
 		"prefix": "selftest",
 		"body": [
@@ -39,7 +39,7 @@
 			"\tacc.wasMerged()\n$0"
 		]
 	},
-	"Montool": {
+	"Monitoring Tool": {
 		"scope": "python",
 		"prefix": "montool",
 		"body": [
