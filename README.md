@@ -1,4 +1,4 @@
-# Atlas Integration
+# Atlas Integration extension for Visual Studio Code
 
 Integrates [ATLAS Software](https://atlassoftwaredocs.web.cern.ch/) into VS Code.
 
@@ -10,8 +10,8 @@ Below is a list of all commands available in the Command palette.
 | -------: | ------- |
 | `Update Copyright`   | updates a copyright info in the active editor |
 | `Add Current Package To The Build`   | adds active editor's package to the `package_filters.txt` file |
-| `Compile`   | compiles athena |
-| `Test`   | tests athena (executes `testing.testCommand` command) |
+| `Compile Athena`   | compiles athena (executes i. a. `atlas.compileCommand`) |
+| `Test Athena`   | tests athena (executes `atlas.testCommand` command) |
 
 ## Snippets
 
@@ -35,10 +35,17 @@ Below is a list of all available snippets categorized by programming language. T
 
 This extension contributes the following settings:
 
-* `testing.testCommand`: specifies test command
+* `atlas.testCommand`: specifies testing command (default: `ctest`)
+* `atlas.compileCommand`: specifies compilation command (default: `make`)
 
 ## Release Notes
 
 ### 0.0.1
 
 Initial release
+
+### 0.1.0
+
+* Added ATLAS Terminal
+* Handled multiple workspaces
+* Better human-readable messages

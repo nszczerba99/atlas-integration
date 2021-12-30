@@ -2,7 +2,7 @@
   "name": "atlas-integration",
   "displayName": "ATLAS Integration",
   "description": "Integrates ATLAS Software into VS Code.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "nszczerba",
   "repository": "https://github.com/nszczerba99/atlas-integration.git",
   "engines": {
@@ -20,10 +20,15 @@
     "configuration": {
       "title": "Atlas Integration",
       "properties": {
-        "atlas.testing.testCommand": {
+        "atlas.testCommand": {
           "type": "string",
           "default": "ctest",
           "description": "Specifies Athena testing command"
+        },
+        "atlas.compileCommand": {
+          "type": "string",
+          "default": "make",
+          "description": "Specifies Athena compilation command"
         }
       }
     },
@@ -40,13 +45,13 @@
       },
       {
         "command": "atlas-integration.compile",
-        "title": "Compile",
+        "title": "Compile Athena",
         "category": "ATLAS",
         "icon": "$(wrench)"
       },
       {
         "command": "atlas-integration.test",
-        "title": "Test",
+        "title": "Test Athena",
         "category": "ATLAS",
         "icon": "$(testing-run-all-icon)"
       }
@@ -54,12 +59,10 @@
     "menus": {
       "editor/title/run": [
           {
-              "command": "atlas-integration.compile",
-              "title": "Compile"
+              "command": "atlas-integration.compile"
           },
           {
-              "command": "atlas-integration.test",
-              "title": "Test"
+              "command": "atlas-integration.test"
           }
       ]
     },
