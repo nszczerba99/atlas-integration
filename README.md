@@ -1,7 +1,7 @@
 # Atlas Integration extension for Visual Studio Code
 
 Integrates [ATLAS Software](https://atlassoftwaredocs.web.cern.ch/) into VS Code.\
-Lets you develop [athena](https://gitlab.cern.ch/atlas/athena/) in more quick and efficient way.
+Lets you develop [athena](https://gitlab.cern.ch/atlas/athena/) in quicker and more efficient way.
 
 ## Commands
 
