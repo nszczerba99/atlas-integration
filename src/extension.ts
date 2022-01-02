@@ -13,6 +13,8 @@ export function activate(context: vsc.ExtensionContext): void {
 	vsc.workspace.onDidChangeWorkspaceFolders(onWorkspaceChange);
 
 	vsc.workspace.onDidCreateFiles((event) => updateCompileCommands(event, context));
+	vsc.workspace.onDidDeleteFiles((event) => updateCompileCommands(event, context));
+	vsc.workspace.onDidRenameFiles((event) => updateCompileCommands(event, context));
 	
 	const updatePackageFiltersDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.addCurrentPackageToTheBuild', (editor) => updatePackageFilters(editor, context));
 	const updateCopyrightDisposable = vsc.commands.registerTextEditorCommand('atlas-integration.updateCopyright', updateCopyright);

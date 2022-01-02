@@ -1,5 +1,5 @@
 {
-	"Cfg function": {
+	"Cfg Function": {
 		"scope": "python",
 		"prefix": "cfg",
 		"body": [
@@ -7,9 +7,10 @@
 			"\t$BLOCK_COMMENT_START${0}$BLOCK_COMMENT_END",
 			"\tacc = ComponentAccumulator()",
 			"\treturn acc"
-		]
+		],
+		"description": "Cfg Function"
 	},
-	"Self-test": {
+	"Self-Test Statement": {
 		"scope": "python",
 		"prefix": "selftest",
 		"body": [
@@ -19,7 +20,7 @@
 			"\tfrom AthenaConfiguration.AllConfigFlags import ConfigFlags",
 			"\tfrom AthenaConfiguration.TestDefaults import defaultTestFiles",
 			"\tfrom AthenaConfiguration.MainServicesConfig import MainServicesCfg\n\n",
-			"\tConfigFlags.Input.Files=defaultTestFiles.${1|RAW,ESD,AOD|}",
+			"\tConfigFlags.Input.Files=defaultTestFiles.RAW $LINE_COMMENT or ESD or AOD or ...",
 			"\tConfigFlags.lock()\n",
 			"\tacc=MainServicesCfg(ConfigFlags)",
     			"\t$LINE_COMMENT if need to read POOL file",
@@ -28,7 +29,7 @@
     			"\t$LINE_COMMENT if need to read BS file",
 			"\tfrom ByteStreamCnvSvc.ByteStreamConfig import ByteStreamReadCfg",
 			"\tacc.merge(ByteStreamReadCfg(ConfigFlags))\n",
-			"\tacc.merge(${4:CFG generator})\n",
+			"\tacc.merge(${1:Cfg generator})\n",
 			"\tacc.printConfig(withDetails=True)",
 			"\t$LINE_COMMENT either",
 			"\tstatus = acc.run()",	
@@ -37,16 +38,18 @@
 			"\t\tsys.exit(-1)",
 			"\t$LINE_COMMENT or",
 			"\tacc.wasMerged()\n$0"
-		]
+		],
+		"description": "Self-Test Statement"
 	},
-	"Monitoring Tool": {
+	"Set up monitoring tool": {
 		"scope": "python",
 		"prefix": "montool",
 		"body": [
 			"from AthenaMonitoringKernel.GenericMonitoringTool import GenericMonitoringTool",
 			"monTool = GenericMonitoringTool('MonTool')",
-			"monTool.defineHistogram('${1:var_name}', title='title;xaxis;yaxis', type='TH1F', path='EXPERT', xbins=$2, xmin=$3, xmax=$4)",
-			"monTool.defineHistogram('${5:var1_name}, ${6:var2_name}', title='title;xaxis;yaxis', type='TH2F', path='EXPERT', xbins=$7, xmin=$8, xmax=$9, ybins=$10, ymin=$11, ymax=$12)\n$0"
-		]	
+			"monTool.defineHistogram('${1:variable name}', title='title;xaxis;yaxis', type='TH1F', path='EXPERT', xbins=$2, xmin=$3, xmax=$4)",
+			"monTool.defineHistogram('${5:1st variable name}, ${6:2nd variable name}', title='title;xaxis;yaxis', type='TH2F', path='EXPERT', xbins=$7, xmin=$8, xmax=$9, ybins=$10, ymin=$11, ymax=$12)\n$0"
+		],
+		"description": "Set up monitoring tool"
 	}
 }
