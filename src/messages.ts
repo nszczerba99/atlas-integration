@@ -9,7 +9,7 @@ export const messages = {
 	PACKAGE_FILTERS_FILE_NOT_FOUND: '"package_filters.txt" file not found',
 	PACKAGE_FILTERS_UPDATED: '"package_filters.txt" file updated',
 	PACKAGE_NOT_FOUND: 'Package of the file not found',
-	PYTHON_ENV_FILE_NOT_FOUND:'Could not set "python.envFile" property: "${workspaceFolder}/../build/env.txt" file not found', 
+	PYTHON_ENV_FILE_NOT_FOUND:'Could not set "python.envFile" property: "${workspaceFolder}/../build/env.txt" file not found',
 	PYTHON_ENV_SETTING_ERROR: 'Could not set "python.envFile" property',
 	TERMINAL_WELCOME_MESSAGE: 'Welcome to ATLAS Terminal. You should set up the environment for compiling and testing Athena here.',
 };

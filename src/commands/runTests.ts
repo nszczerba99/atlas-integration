@@ -9,9 +9,9 @@ export const runTests = (): void => {
 	if (athenaFolder) {
 		const terminal = getAtlasTerminal(athenaFolder);
 		terminal.show();
-		
+
 		const testCommand = vsc.workspace.getConfiguration().get('atlas.testCommand') as string;
-		terminal.sendText(testCommand);	
+		terminal.sendText(testCommand);
 	} else {
 		onAthenaMissing(messages.ATHENA_SHOULD_BE_IN_WORKSPACE);
 	}

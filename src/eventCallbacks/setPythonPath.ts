@@ -16,5 +16,5 @@ export const setAthenaPythonPath = (athenaFolder: vsc.WorkspaceFolder): void => 
 		});
 	}, () => {
 		vsc.window.showWarningMessage(messages.PYTHON_ENV_FILE_NOT_FOUND);
-	}); 
+	});
 };

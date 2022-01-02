@@ -13,7 +13,7 @@ export const updateCompileCommands = (event: vsc.FileCreateEvent | vsc.FileDelet
 
 			vsc.workspace.openTextDocument(packageFiltersPath).then((packageFiltersDocument) => {
 				const packageFiltersText = packageFiltersDocument.getText();
-				
+
 				findFilePackage(uri.fsPath, rootPath).then((packagePath) => {
 					if (packagePath && packageFiltersText.match(packagePath)) {
 						context.workspaceState.update('wereBuildFilesAdded', true);
@@ -35,4 +35,4 @@ export const updateCompileCommands = (event: vsc.FileCreateEvent | vsc.FileDelet
 			}
 		});
 	}
-};	
+};

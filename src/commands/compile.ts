@@ -16,7 +16,7 @@ export const compile = (context: vsc.ExtensionContext): void => {
 		checkIfFileExists(packageFiltersPath).then(() => {
 			const terminal = getAtlasTerminal(athenaFolder);
 			terminal.show();
-			
+
 			const didPackageFiltersChange = context.workspaceState.get('didPackageFiltersChange', true);
 			const wereBuildFilesAdded = context.workspaceState.get('wereBuildFilesAdded', false);
 

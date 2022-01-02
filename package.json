@@ -2,7 +2,7 @@
   "name": "atlas-integration",
   "displayName": "ATLAS Integration",
   "description": "Integrates ATLAS Software into VS Code.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "nszczerba",
   "repository": "https://github.com/nszczerba99/atlas-integration.git",
   "engines": {

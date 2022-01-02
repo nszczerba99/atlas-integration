@@ -6,7 +6,7 @@ import { onAthenaMissing } from '../utils/onAthenaMissing';
 export const updateCopyright = (textEditor: vsc.TextEditor, edit: vsc.TextEditorEdit): void => {
 	const textDocument = textEditor.document;
 	const currentFolder = vsc.workspace.getWorkspaceFolder(textDocument.uri);
-	
+
 	if (currentFolder && isAthena(currentFolder)) {
 		const text = textDocument.getText();
 
@@ -17,7 +17,7 @@ export const updateCopyright = (textEditor: vsc.TextEditor, edit: vsc.TextEditor
 		if (copyrightInfo) {
 			const copyrightYear = copyrightInfo[0].substring(yearOffset, yearOffset + yearLength);
 			const currentYear = new Date().getFullYear().toString();
-			
+
 			if (currentYear === copyrightYear) {
 				vsc.window.showInformationMessage(messages.COPYRIGHT_ALREADY_UPDATED);
 			} else {
