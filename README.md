@@ -1,7 +1,7 @@
 # Atlas Integration extension for Visual Studio Code
 
 Integrates [ATLAS Software](https://atlassoftwaredocs.web.cern.ch/) into VS Code.\
-Lets you develop [athena](https://gitlab.cern.ch/atlas/athena/) in quicker and more efficient way.
+Lets you develop [athena](https://gitlab.cern.ch/atlas/athena/) in a quicker and more efficient way.
 
 ## Commands
 
@@ -31,7 +31,7 @@ Below is a list of all available snippets categorized by programming language. T
 | `readhandle→`   | creates `SG::ReadHandleKey` class object |
 | `writehandle→`   | creates `WriteHandle` class object |
 | `property→`   | creates `Gaudi::Property` class object |
-| `method→`   | creates `StatusCode` class object |
+| `method with event context→`   | creates `StatusCode` class object |
 
 ## Extension Settings
 
@@ -62,3 +62,7 @@ Initial release
 
 * Improved snippets
 * ATLAS Terminal starts at one directory up the athena folder
+
+### 0.1.2
+
+* "method" snippet prefix changed to "method with event context"

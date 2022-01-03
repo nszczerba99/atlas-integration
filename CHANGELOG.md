@@ -14,3 +14,7 @@
 
 - Improved snippets
 - ATLAS Terminal starts at one directory up the athena folder
+
+## 0.1.2
+
+- "method" snippet prefix changed to "method with event context"

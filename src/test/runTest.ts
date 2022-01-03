@@ -16,7 +16,7 @@ async function main() {
 		await runTests({
 			extensionDevelopmentPath,
 			extensionTestsPath,
-			launchArgs: ['src/test/testProject/athena/', '--disable-gpu', '--install-extension ms-python.python', '--disable-extensions'],
+			launchArgs: ['src/test/testProject/athena/', '--disable-gpu', '--install-extension', 'ms-python.python', '--disable-extensions'],
 		});
 	} catch (err) {
 		console.error('Failed to run tests');
